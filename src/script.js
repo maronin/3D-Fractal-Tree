@@ -125,18 +125,13 @@ class Branch {
 }
 
 
+
+
 const generateTree = () => {
 
-
-    clearTree(sphere)
-    const branch = new Branch(new THREE.Vector3(), treeProperties.branchLength, new THREE.Color())
-    const branchGroup = new THREE.Group()
-    branchGroup.add(branch.mesh)
-    sphere.add(branchGroup)
     const makeBranch = (curBranches, parent, prevBranchEndPos, depth) => {
 
         if (curBranches < treeProperties.branches) {
-
 
             const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
 
@@ -162,20 +157,22 @@ const generateTree = () => {
 
             makeBranch(++curBranches, branchGroup, branch.branchEndPos, depth)
 
-            if (depth > treeProperties.depth) {
-                return
+            if (depth > 0) {
+                branchGroup.rotation.z = treeProperties.angle * Math.PI / 180
+                makeBranch(curBranches, branchGroup, branch.branchEndPos, --depth)
             }
-
-            branchGroup.rotation.z = treeProperties.angle * Math.PI / 180
-            makeBranch(curBranches - 1, branchGroup, branch.branchEndPos, ++depth)
-
 
         }
 
-
     }
 
-    makeBranch(0, branchGroup, branch.branchEndPos, treeProperties.depth)
+    clearTree(sphere)
+    const trunk = new Branch(new THREE.Vector3(), treeProperties.branchLength, new THREE.Color())
+    const branchGroup = new THREE.Group()
+    branchGroup.add(trunk.mesh)
+    sphere.add(branchGroup)
+
+    makeBranch(0, branchGroup, trunk.branchEndPos, treeProperties.depth)
 
 }
 
@@ -233,7 +230,7 @@ guiTreePropertiesFolder.add(treeProperties, "stemToStemRatio").min(0.1).max(0.95
 guiTreePropertiesFolder.add(treeProperties, "angle").min(0).max(60).step(0.5).onChange(generateTree)
     // guiTreePropertiesFolder.add(treeProperties, "scatterAngle").min(0).max(360).step(5).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProperties, "depth").min(0).max(5).step(1).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "branches").min(0).max(4).step(1).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProperties, "branches").min(0).max(10).step(1).onChange(generateTree)
 
 
 
