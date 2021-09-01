@@ -90,7 +90,7 @@ const treeProperties = {
 
 const sphere = new THREE.Mesh(
     new THREE.SphereBufferGeometry(3, 20, 10),
-    material
+    new THREE.MeshBasicMaterial({ color: 0x5C2D00 })
 )
 scene.add(sphere)
 
@@ -146,24 +146,35 @@ const generateTree = () => {
 
         if (curBranches < treeProperties.branches) {
 
-            // Reduce length by the stemToStemRatio
-            const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
-            const color = new THREE.Color(0, 1 - curBranches / treeProperties.branches, 0)
-            const branch = createBranch(branchLength, color, prevBranchEndPos)
+            for (let i = 0; i < 2; i++) {
 
-            // Rotate
-            branch.group.rotation.z = -treeProperties.angle * Math.PI / 180
 
-            parent.add(branch.group)
+                // Reduce length by the stemToStemRatio
+                const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
 
-            branchOff(++curBranches, branch.group, branch.endPos, depth)
+                prevBranchEndPos.y += branchLength * i
+                const color = new THREE.Color(0, 1 - curBranches / treeProperties.branches, 0)
+                const branch = createBranch(branchLength, color, prevBranchEndPos)
+
+                const stemPos = prevBranchEndPos
+                    // stemPos.y += branchLength * i
+
+                const stem = createBranch(branchLength, color, stemPos)
+                parent.add(stem.group)
+
+                // Rotate
+                branch.group.rotation.z = (treeProperties.angle * Math.PI / 180) * (i % 2 == 0 ? -1 : 1)
+
+                parent.add(branch.group)
+                branchOff(++curBranches, branch.group, branch.endPos, depth)
+            }
 
         }
 
     }
 
     resetTree(sphere)
-    const trunk = createBranch(treeProperties.branchLength, new THREE.Color(), new THREE.Vector3())
+    const trunk = createBranch(treeProperties.branchLength, new THREE.Color(0x5C2D00), new THREE.Vector3())
     sphere.add(trunk.group)
 
     branchOff(
@@ -217,7 +228,7 @@ window.addEventListener('resize', () => {
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000)
 camera.position.x = 0
 camera.position.y = 40
-camera.position.z = 305
+camera.position.z = 100
 scene.add(camera)
 
 
