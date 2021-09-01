@@ -102,11 +102,12 @@ scene.add(sphere)
 /**
  * Clear the tree and dispose of the children
  */
-const clearTree = (tree) => {
+const resetTree = (tree) => {
     // tree.children.forEach(child => {
     // child.geometry.dispose()
     // });
     tree.remove(...tree.children);
+
 }
 
 
@@ -127,95 +128,54 @@ class Branch {
 
 
 
+const createBranch = (branchLength, color, prevBranchEndPos) => {
+    const branch = new Branch(new THREE.Vector3(), branchLength, color)
+    const branchGroup = new THREE.Group()
+    branchGroup.add(branch.mesh)
+
+    // Get the start position of where the previous branch ended
+    branchGroup.position.copy(prevBranchEndPos)
+
+    return { group: branchGroup, endPos: branch.branchEndPos };
+}
+
+
+
 const generateTree = () => {
 
     const makeBranch = (curBranches, parent, prevBranchEndPos, depth) => {
 
         if (curBranches < treeProperties.branches) {
-
+            // Make the branch
             const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
-
             const color = new THREE.Color(0, 1 - curBranches / treeProperties.branches, 0)
-            const branch = new Branch(new THREE.Vector3(), branchLength, color)
-            const sphere = new THREE.Mesh(
-                new THREE.SphereBufferGeometry(0.75, 20, 10),
-                new THREE.MeshBasicMaterial({
-                    color: 0x3B2100
-                })
-            )
-            sphere.position.set(branch.branchEndPos.x, branch.branchEndPos.y, branch.branchEndPos.z)
-            const branchGroup = new THREE.Group()
+            const branch = createBranch(branchLength, color, prevBranchEndPos)
 
-            branchGroup.rotation.z = -treeProperties.angle * Math.PI / 180
-            branchGroup.add(branch.mesh)
-            branchGroup.add(sphere)
+            // Rotate
+            branch.group.rotation.z = -treeProperties.angle * Math.PI / 180
 
-            // Get the start position of where the previous branch ended
-            branchGroup.position.copy(prevBranchEndPos)
+            parent.add(branch.group)
 
-            parent.add(branchGroup)
-
-            makeBranch(++curBranches, branchGroup, branch.branchEndPos, depth)
+            makeBranch(++curBranches, branch.group, branch.endPos, depth)
 
             if (depth > 0) {
-                branchGroup.rotation.z = treeProperties.angle * Math.PI / 180
-                makeBranch(curBranches, branchGroup, branch.branchEndPos, --depth)
+                // branch.group.rotation.z = treeProperties.angle * Math.PI / 180
+                // makeBranch(curBranches, branch.group, branch.endPos, --depth)
             }
 
         }
 
     }
 
-    clearTree(sphere)
-    const trunk = new Branch(new THREE.Vector3(), treeProperties.branchLength, new THREE.Color())
-    const branchGroup = new THREE.Group()
-    branchGroup.add(trunk.mesh)
-    sphere.add(branchGroup)
-
-    makeBranch(0, branchGroup, trunk.branchEndPos, treeProperties.depth)
+    resetTree(sphere)
+    const trunk = createBranch(treeProperties.branchLength, new THREE.Color(), new THREE.Vector3())
+    sphere.add(trunk.group)
+    makeBranch(0, trunk.group, trunk.endPos, treeProperties.depth)
 
 }
 
 // scene.add(tree)
 generateTree()
-
-
-const angle = (Math.PI * 20) / 180
-
-/*
-const branch1 = new Branch(new THREE.Vector3(), 10)
-const branch1Group = new THREE.Group()
-branch1Group.add(branch1.mesh)
-
-// copy position of parent
-branch1Group.position.copy(plane.position)
-
-
-
-const branch2 = new Branch(new THREE.Vector3(), 10)
-const branch2Group = new THREE.Group()
-
-// copy position of parent
-branch2Group.add(branch2.mesh)
-branch2Group.position.copy(branch1.v1)
-
-// parent adds this to group
-branch1Group.add(branch2Group)
-
-
-const branch3 = new Branch(new THREE.Vector3(), 10)
-const branch3Group = new THREE.Group()
-branch3Group.position.copy(branch2.v1)
-branch3Group.add(branch3.mesh)
-branch2Group.add(branch3Group)
-*/
-
-
-
-
-// scene.add(branch1Group)
-
-
 
 
 /**
