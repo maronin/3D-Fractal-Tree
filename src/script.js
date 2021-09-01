@@ -94,10 +94,6 @@ const sphere = new THREE.Mesh(
 )
 scene.add(sphere)
 
-/** 
- * Tree Group
- */
-
 
 /**
  * Clear the tree and dispose of the children
@@ -126,8 +122,9 @@ class Branch {
 }
 
 
-
-
+/** 
+ * Create a branch, returning the group and end position 
+ */
 const createBranch = (branchLength, color, prevBranchEndPos) => {
     const branch = new Branch(new THREE.Vector3(), branchLength, color)
     const branchGroup = new THREE.Group()
@@ -140,13 +137,16 @@ const createBranch = (branchLength, color, prevBranchEndPos) => {
 }
 
 
-
+/**
+ * Generate the tree
+ */
 const generateTree = () => {
 
-    const makeBranch = (curBranches, parent, prevBranchEndPos, depth) => {
+    const branchOff = (curBranches, parent, prevBranchEndPos, depth) => {
 
         if (curBranches < treeProperties.branches) {
-            // Make the branch
+
+            // Reduce length by the stemToStemRatio
             const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
             const color = new THREE.Color(0, 1 - curBranches / treeProperties.branches, 0)
             const branch = createBranch(branchLength, color, prevBranchEndPos)
@@ -156,12 +156,7 @@ const generateTree = () => {
 
             parent.add(branch.group)
 
-            makeBranch(++curBranches, branch.group, branch.endPos, depth)
-
-            if (depth > 0) {
-                // branch.group.rotation.z = treeProperties.angle * Math.PI / 180
-                // makeBranch(curBranches, branch.group, branch.endPos, --depth)
-            }
+            branchOff(++curBranches, branch.group, branch.endPos, depth)
 
         }
 
@@ -170,11 +165,17 @@ const generateTree = () => {
     resetTree(sphere)
     const trunk = createBranch(treeProperties.branchLength, new THREE.Color(), new THREE.Vector3())
     sphere.add(trunk.group)
-    makeBranch(0, trunk.group, trunk.endPos, treeProperties.depth)
+
+    branchOff(
+        0, //curBranches
+        trunk.group, // parent
+        trunk.endPos, // previous branch end position
+        treeProperties.depth // how deep to go
+    )
 
 }
 
-// scene.add(tree)
+
 generateTree()
 
 
