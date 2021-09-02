@@ -80,10 +80,10 @@ const sizes = {
 const treeProperties = {
     stemToStemRatio: 0.8,
     stemToBranchRatio: 0.5,
-    depth: 3,
-    angle: 30,
+    depth: 0,
+    angle: 60,
     scatterAngle: 0,
-    branches: 3,
+    branches: 10,
     branchLength: 30
 }
 
@@ -114,10 +114,22 @@ class Branch {
         this.v0 = pos
         this.branchEndPos = new THREE.Vector3(this.pos.x, this.pos.y + this.length, this.pos.z)
         this.branchPath = new THREE.LineCurve3(this.v0, this.branchEndPos)
-        this.mesh = new THREE.Mesh(
+
+
+        this.groupMesh = new THREE.Group()
+
+        this.groupMesh.add(new THREE.Mesh(
             new THREE.TubeBufferGeometry(this.branchPath, 20, 0.5, 8, false),
             new THREE.MeshBasicMaterial({ color: color })
+        ))
+        const sphere = new THREE.Mesh(
+            new THREE.SphereBufferGeometry(1, 10, 10),
+            new THREE.MeshBasicMaterial({ color: color })
         )
+        sphere.position.copy(this.branchEndPos)
+        this.groupMesh.add(sphere)
+
+
     }
 }
 
@@ -128,7 +140,7 @@ class Branch {
 const createBranch = (branchLength, color, prevBranchEndPos) => {
     const branch = new Branch(new THREE.Vector3(), branchLength, color)
     const branchGroup = new THREE.Group()
-    branchGroup.add(branch.mesh)
+    branchGroup.add(branch.groupMesh)
 
     // Get the start position of where the previous branch ended
     branchGroup.position.copy(prevBranchEndPos)
@@ -141,32 +153,53 @@ const createBranch = (branchLength, color, prevBranchEndPos) => {
  * Generate the tree
  */
 const generateTree = () => {
+    const color = new THREE.Color(0, 0.5, 0)
+    const branchOff = (depth, parent, prevBranchEndPos, numBranches) => {
 
-    const branchOff = (curBranches, parent, prevBranchEndPos, depth) => {
-
-        if (curBranches < treeProperties.branches) {
-
-            for (let i = 0; i < 2; i++) {
+        if (depth < treeProperties.depth + 1) {
+            console.log("----------");
+            for (let i = 0; i < numBranches; i++) {
 
 
                 // Reduce length by the stemToStemRatio
-                const branchLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, curBranches))
+                let branchLength = treeProperties.branchLength //* (Math.pow(treeProperties.stemToStemRatio, i))
+                let stemLength = treeProperties.branchLength * (Math.pow(treeProperties.stemToStemRatio, i))
 
-                prevBranchEndPos.y += branchLength * i
-                const color = new THREE.Color(0, 1 - curBranches / treeProperties.branches, 0)
-                const branch = createBranch(branchLength, color, prevBranchEndPos)
+                const stemPos = new THREE.Vector3(0, 0, 0)
+                stemPos.copy(prevBranchEndPos)
 
-                const stemPos = prevBranchEndPos
-                    // stemPos.y += branchLength * i
+                console.log(stemLength);
 
-                const stem = createBranch(branchLength, color, stemPos)
+                // stemLength = treeProperties.branchLength
+
+                if (i > 0) {
+                    stemPos.y += treeProperties.branchLength
+                }
+                if (i == 2) {
+                    stemPos.y += treeProperties.branchLength * 0.8
+                }
+                if (i == 3) {
+                    stemPos.y += treeProperties.branchLength * 0.8 + treeProperties.branchLength * 0.63
+                }
+                if (i == 4) {
+                    stemPos.y += treeProperties.branchLength * 0.8 + treeProperties.branchLength * 0.63 + treeProperties.branchLength * 0.512
+                }
+
+                stemPos.x += i * 5
+
+                const stem = createBranch(stemLength, color, stemPos)
                 parent.add(stem.group)
 
-                // Rotate
-                branch.group.rotation.z = (treeProperties.angle * Math.PI / 180) * (i % 2 == 0 ? -1 : 1)
+                // Make Branch
 
-                parent.add(branch.group)
-                branchOff(++curBranches, branch.group, branch.endPos, depth)
+                ////const branch = createBranch(branchLength, color, prevBranchEndPos)
+                ////branch.group.rotation.z = (treeProperties.angle * Math.PI / 180) * (i % 2 == 0 ? -1 : 1)
+
+                // branch.group.rotation.y = THREE.MathUtils.degToRad(THREE.MathUtils.randFloat(-180, 180))
+
+                ////parent.add(branch.group)
+                ////branchOff(++depth, branch.group, branch.endPos, numBranches)
+                depth--
             }
 
         }
@@ -181,10 +214,11 @@ const generateTree = () => {
         0, //curBranches
         trunk.group, // parent
         trunk.endPos, // previous branch end position
-        treeProperties.depth // how deep to go
+        treeProperties.branches // how deep to go
     )
 
 }
+
 
 
 generateTree()
@@ -227,13 +261,16 @@ window.addEventListener('resize', () => {
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000)
 camera.position.x = 0
-camera.position.y = 40
+camera.position.y = 70
 camera.position.z = 100
 scene.add(camera)
 
 
+
 // Controls
 const controls = new OrbitControls(camera, canvas)
+controls.target.copy(new THREE.Vector3(0, camera.position.y, 20));
+controls.update()
 controls.enableDamping = true
     // controls.enablePan = false;
 
