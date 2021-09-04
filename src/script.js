@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
 import Branch from './branch'
+import treeProps from './treeProps'
+
 
 /**
  * Base
@@ -71,18 +73,6 @@ const sizes = {
  * Tree properties
  */
 const maxBranchLength = 80
-const treeProperties = {
-    stemToStemRatio: 0.8,
-    stemToBranchRatio: 0.5,
-    scatterAngle: 0,
-    branchLength: 50,
-    angle: 60,
-    depth: 0,
-    branches: 2,
-    branchAngleDeviation: 5,
-    enableRandomDeviation: false,
-    animate: false
-}
 
 
 const sphere = new THREE.Mesh(
@@ -111,47 +101,60 @@ const resetTree = (tree) => {
         }
     })
 }
+const standardMaterial = new THREE.MeshStandardMaterial()
 
+const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prevBranchLength) => {
 
-const branchOff = (depth, parent, prevBranchEndPos, numBranches, prevBranchLength) => {
+    if (depth <= treeProps.depth) {
 
-    if (depth <= treeProperties.depth) {
+        let stemEndRad = endRadius
 
         if (depth == 0) {
-            const stem = new Branch(prevBranchEndPos, prevBranchLength, greenColor, "stem")
+            const stem = new Branch(prevBranchEndPos, endRadius, prevBranchLength, greenColor, "stem")
             parent.add(stem.meshGroup)
             prevBranchEndPos.copy(stem.endPos)
+            stemEndRad = stem.endRad
         }
 
         const stemPos = new THREE.Vector3()
+
+
         stemPos.copy(prevBranchEndPos)
 
         for (let i = 1; i <= numBranches; i++) {
 
-            let branchLength2 = prevBranchLength * (Math.pow(treeProperties.stemToStemRatio, i))
-            let stemLength = prevBranchLength * (Math.pow(treeProperties.stemToStemRatio, i))
+            let branchLength2 = prevBranchLength * (Math.pow(treeProps.stemToBranchRatio, i + depth))
+            let stemLength = prevBranchLength * (Math.pow(treeProps.stemToStemRatio, i + depth))
 
-            const stem = new Branch(stemPos, stemLength, greenColor, "stem")
+            const stem = new Branch(stemPos, stemEndRad, stemLength, greenColor, "stem", i == numBranches)
+            if (i < numBranches) stemEndRad = stem.endRad
 
-            const branch = new Branch(stemPos, branchLength2, greenColor, "branch")
-            branch.meshGroup.rotation.y = (THREE.MathUtils.randFloat(-180, 180) * Math.PI / 180)
-            branch.meshGroup.rotation.z = (treeProperties.angle * Math.PI / 180)
+            const branch = new Branch(stemPos, stemEndRad, branchLength2, greenColor, "branch", depth == treeProps.depth)
+
+            if (treeProps.enableRandomDeviation) {
+                branch.meshGroup.rotation.y = (THREE.MathUtils.randFloat(-treeProps.branchAngleDeviation, treeProps.branchAngleDeviation) * Math.PI / 180)
+            } else {
+                if (i % 2 == 0) {
+                    // branch.meshGroup.rotation.y = treeProps.branchAngleDeviation * Math.PI / 180
+                }
+                branch.meshGroup.rotation.y = i * treeProps.branchAngleDeviation * Math.PI / 180
+            }
+            branch.meshGroup.rotation.z = (treeProps.angle * Math.PI / 180)
             parent.add(branch.meshGroup)
             parent.add(stem.meshGroup)
 
-            if (i > 0) {
-                stemPos.y += stemLength * (Math.pow(treeProperties.stemToStemRatio, i - 1))
-            }
+            stemPos.y += stemLength
 
-            branchOff(++depth, branch.meshGroup, branch.endPos, numBranches, branchLength2)
+            branchOff(++depth, branch.meshGroup, branch.endPos, branch.endRad, numBranches, branchLength2)
             depth--
+
         }
 
     } else {
 
         const leaf = new THREE.Mesh(
             sphereForBranch,
-            new THREE.MeshStandardMaterial()
+            standardMaterial
         )
         leaf.position.copy(prevBranchEndPos)
         parent.add(leaf)
@@ -172,8 +175,9 @@ const generateTree = () => {
         0, //curBranches
         sphere, // parent
         new THREE.Vector3(), // previous branch end position
-        treeProperties.branches, // how deep to go
-        treeProperties.branchLength
+        10,
+        treeProps.branches, // how deep to go
+        treeProps.branchLength
     )
 
 }
@@ -186,18 +190,18 @@ generateTree()
  */
 const guiTreePropertiesFolder = gui.addFolder("Tree Properties")
 guiTreePropertiesFolder.open()
-guiTreePropertiesFolder.add(treeProperties, "branchLength").min(0).max(200).step(.1).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "stemToStemRatio").min(0.1).max(0.95).step(0.01).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "stemToBranchRatio").min(0.4).max(0.9).step(0.1).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "branchLength").min(0).max(200).step(.1).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "stemToStemRatio").min(0.1).max(0.95).step(0.01).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "stemToBranchRatio").min(0.4).max(0.9).step(0.1).onChange(generateTree)
 
-guiTreePropertiesFolder.add(treeProperties, "angle").min(0).max(60).step(0.5).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "branchAngleDeviation").min(0).max(360).step(0.5).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "enableRandomDeviation").onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "angle").min(0).max(60).step(0.5).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "branchAngleDeviation").min(0).max(360).step(0.5).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "enableRandomDeviation").onChange(generateTree)
 
 // guiTreePropertiesFolder.add(treeProperties, "scatterAngle").min(0).max(360).step(5).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "depth").min(0).max(5).step(1).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "branches").min(0).max(10).step(1).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProperties, "animate").onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "depth").min(0).max(5).step(1).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "branches").min(0).max(40).step(1).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "animate").onChange(generateTree)
 
 
 
@@ -266,12 +270,12 @@ const tick = () => {
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 
-    if (treeProperties.animate) {
-        if (treeProperties.branchLength < maxBranchLength) {
-            treeProperties.branchLength += elapsedTime / 60
+    if (treeProps.animate) {
+        if (treeProps.branchLength < maxBranchLength) {
+            treeProps.branchLength += elapsedTime / 60
 
         }
-        treeProperties.branchAngleDeviation += elapsedTime / 60
+        treeProps.branchAngleDeviation += elapsedTime / 60
         generateTree()
         gui.updateDisplay()
     }

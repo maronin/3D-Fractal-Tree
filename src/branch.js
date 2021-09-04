@@ -5,21 +5,22 @@ import * as THREE from 'three'
  */
 export default class Branch {
 
-    constructor(endPos, length, color, name) {
+    constructor(endPos, rad, length, color, name, last = false) {
         this.pos = new THREE.Vector3()
         this.length = length
         this.endPos = new THREE.Vector3(this.pos.x, this.pos.y + this.length, this.pos.z)
-        this.branchPath = new THREE.LineCurve3(this.pos, this.endPos)
 
-
+        this.endRad = rad * 0.95
         this.meshGroup = new THREE.Group()
         this.meshGroup.name = name
 
         const standardMaterial = new THREE.MeshStandardMaterial({ color: color })
+        if (last) {
+            this.endRad = rad * 0.4
+        }
 
-        const tubeGeometry = new THREE.TubeGeometry(this.branchPath, 1, 1, 8)
 
-        const cylinder = new THREE.CylinderBufferGeometry(2, 2, length, 10, 1)
+        const cylinder = new THREE.CylinderBufferGeometry(Math.max(this.endRad, 0.2), rad, length, 8, 1)
         const branch = new THREE.Mesh(
             cylinder,
             standardMaterial
