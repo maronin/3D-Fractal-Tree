@@ -132,14 +132,12 @@ const branchOff = (depth, parent, prevBranchEndPos, numBranches, prevBranchLengt
             let stemLength = prevBranchLength * (Math.pow(treeProperties.stemToStemRatio, i))
 
             const stem = new Branch(stemPos, stemLength, greenColor, "stem")
+
             const branch = new Branch(stemPos, branchLength2, greenColor, "branch")
+            branch.meshGroup.rotation.y = (THREE.MathUtils.randFloat(-180, 180) * Math.PI / 180)
             branch.meshGroup.rotation.z = (treeProperties.angle * Math.PI / 180)
             parent.add(branch.meshGroup)
             parent.add(stem.meshGroup)
-
-            if (i % 2 == 0) {
-                branch.meshGroup.rotation.y = (treeProperties.branchAngleDeviation * Math.PI / 180)
-            }
 
             if (i > 0) {
                 stemPos.y += stemLength * (Math.pow(treeProperties.stemToStemRatio, i - 1))
@@ -148,8 +146,6 @@ const branchOff = (depth, parent, prevBranchEndPos, numBranches, prevBranchLengt
             branchOff(++depth, branch.meshGroup, branch.endPos, numBranches, branchLength2)
             depth--
         }
-        depth--
-
 
     } else {
 
