@@ -6,7 +6,7 @@ A 3D fractal pine tree!
 
 1. ✔ Use 3D segements of choice (3D line segement, cylinder, cone, or anything else)
 2. ✔ Each branch should be at 60 degree angle from the parent facing toward the end of the end of the parent branch
-3. Each branch is scattered around the the parent branch (randomly or predefined)
+3. ✔ Each branch is scattered around the the parent branch (randomly or predefined)
 4. ✔ Make the depth and branches configurable
    
    
