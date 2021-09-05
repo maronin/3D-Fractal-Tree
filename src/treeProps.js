@@ -1,12 +1,11 @@
 export default {
+    branchLength: 50,
     stemToStemRatio: 0.8,
     stemToBranchRatio: 0.9,
-    scatterAngle: 0,
-    branchLength: 50,
     angle: 60,
-    depth: 0,
-    branches: 5,
-    branchAngleDeviation: 180,
+    branchAngleDeviation: 192,
+    depth: 2,
+    branches: 13,
     enableRandomDeviation: false,
     animate: false
 }

@@ -14,6 +14,7 @@ const gui = new dat.GUI()
 gui.width = 350
 
 
+
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
@@ -75,11 +76,9 @@ const sizes = {
 const maxBranchLength = 80
 
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereBufferGeometry(3, 20, 10),
-    new THREE.MeshBasicMaterial({ color: 0x5C2D00 })
-)
-scene.add(sphere)
+const tree = new THREE.Object3D()
+tree.name = "tree"
+scene.add(tree)
 
 
 
@@ -93,7 +92,6 @@ const sphereForBranch = new THREE.SphereBufferGeometry(3, 10, 10)
 const resetTree = (tree) => {
     tree.children.forEach(child => {
         if (child.type === "Group") {
-            if (child.name === "trunk") return
             resetTree(child)
             child.remove(...child.children);
         } else if (child.type === "Mesh") {
@@ -101,8 +99,19 @@ const resetTree = (tree) => {
         }
     })
 }
-const standardMaterial = new THREE.MeshStandardMaterial()
 
+const animateTree = (tree) => {
+    tree.children.forEach(child => {
+        if (child.type === "Group") {
+            animateTree(child)
+            child.rotation.y += 0.01
+        } else if (child.type === "Mesh") {
+
+        }
+    })
+}
+
+const standardMaterial = new THREE.MeshStandardMaterial()
 const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prevBranchLength) => {
 
     if (depth <= treeProps.depth) {
@@ -151,13 +160,14 @@ const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prev
         }
 
     } else {
-
+        /* Adding leafs?!
         const leaf = new THREE.Mesh(
             sphereForBranch,
             standardMaterial
         )
         leaf.position.copy(prevBranchEndPos)
         parent.add(leaf)
+        */
     }
 
 
@@ -167,19 +177,10 @@ const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prev
 /**
  * Generate the tree
  */
-sphere.name = "trunk"
+
 const generateTree = () => {
-
-    resetTree(sphere)
-    branchOff(
-        0, //curBranches
-        sphere, // parent
-        new THREE.Vector3(), // previous branch end position
-        10,
-        treeProps.branches, // how deep to go
-        treeProps.branchLength
-    )
-
+    resetTree(tree)
+    branchOff(0, tree, new THREE.Vector3(), 10, treeProps.branches, treeProps.branchLength)
 }
 
 generateTree()
@@ -189,16 +190,14 @@ generateTree()
  * Tree Properties UI
  */
 const guiTreePropertiesFolder = gui.addFolder("Tree Properties")
+
 guiTreePropertiesFolder.open()
 guiTreePropertiesFolder.add(treeProps, "branchLength").min(0).max(200).step(.1).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "stemToStemRatio").min(0.1).max(0.95).step(0.01).onChange(generateTree)
-guiTreePropertiesFolder.add(treeProps, "stemToBranchRatio").min(0.4).max(0.9).step(0.1).onChange(generateTree)
-
-guiTreePropertiesFolder.add(treeProps, "angle").min(0).max(60).step(0.5).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "stemToBranchRatio").min(0.4).max(0.95).step(0.01).onChange(generateTree)
+guiTreePropertiesFolder.add(treeProps, "angle").min(0).max(180).step(0.5).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "branchAngleDeviation").min(0).max(360).step(0.5).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "enableRandomDeviation").onChange(generateTree)
-
-// guiTreePropertiesFolder.add(treeProperties, "scatterAngle").min(0).max(360).step(5).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "depth").min(0).max(5).step(1).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "branches").min(0).max(40).step(1).onChange(generateTree)
 guiTreePropertiesFolder.add(treeProps, "animate").onChange(generateTree)
@@ -220,6 +219,7 @@ window.addEventListener('resize', () => {
 })
 
 
+
 /**
  * Camera
  */
@@ -231,13 +231,11 @@ camera.position.z = 100
 scene.add(camera)
 
 
-
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.target.copy(new THREE.Vector3(0, camera.position.y, 20));
 controls.update()
 controls.enableDamping = true
-
 
 
 /**
@@ -250,6 +248,59 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.shadowMap.enabled = true
+
+const allBranches = []
+const getAllBranches = (tree) => {
+    tree.children.forEach(child => {
+        allBranches.push(child)
+    })
+}
+
+getAllBranches(tree)
+
+
+function getClickedObject(evt) {
+    evt.preventDefault();
+    const raycaster = new THREE.Raycaster();
+    const mousePosition = new THREE.Vector2();
+
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    mousePosition.x = ((evt.clientX - rect.left) / (rect.right - rect.left)) * 2 - 1;
+    mousePosition.y = -((evt.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1;
+
+
+    raycaster.setFromCamera(mousePosition, camera);
+    var intersects = raycaster.intersectObjects(tree.children, true);
+
+    if (intersects.length > 0) {
+        return {
+            parentBranch: intersects[0].object.parent,
+            point: intersects[0].point
+        }
+
+    }
+}
+
+function addBranchOnClick(event) {
+    const object = getClickedObject(event)
+    if (object) {
+        const branch = new Branch(object.point, 5, treeProps.branchLength, greenColor, "branch", true)
+        const quaternion = new THREE.Quaternion();
+
+        quaternion.setFromUnitVectors(object.point, camera.position);
+
+        branch.meshGroup.applyQuaternion(quaternion);
+        tree.add(branch.meshGroup)
+
+    }
+}
+
+function onclick(event) {
+    addBranchOnClick(event)
+}
+
+renderer.domElement.addEventListener("click", onclick, true);
 
 
 /**
@@ -271,13 +322,7 @@ const tick = () => {
     window.requestAnimationFrame(tick)
 
     if (treeProps.animate) {
-        if (treeProps.branchLength < maxBranchLength) {
-            treeProps.branchLength += elapsedTime / 60
-
-        }
-        treeProps.branchAngleDeviation += elapsedTime / 60
-        generateTree()
-        gui.updateDisplay()
+        animateTree(tree)
     }
 
 }

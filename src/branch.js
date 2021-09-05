@@ -10,17 +10,17 @@ export default class Branch {
         this.length = length
         this.endPos = new THREE.Vector3(this.pos.x, this.pos.y + this.length, this.pos.z)
 
-        this.endRad = rad * 0.95
+        this.endRad = rad * 0.80
         this.meshGroup = new THREE.Group()
         this.meshGroup.name = name
 
         const standardMaterial = new THREE.MeshStandardMaterial({ color: color })
         if (last) {
-            this.endRad = rad * 0.4
+            this.endRad = rad * 0.2
         }
 
 
-        const cylinder = new THREE.CylinderBufferGeometry(Math.max(this.endRad, 0.2), rad, length, 8, 1)
+        const cylinder = new THREE.CylinderBufferGeometry(Math.max(this.endRad, 0.1), rad, length, 8, 1)
         const branch = new THREE.Mesh(
             cylinder,
             standardMaterial
