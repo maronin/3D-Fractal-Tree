@@ -1,15 +1,22 @@
 import * as THREE from 'three'
 
 /**
- * Branch class
+ * Branch class using a cylinder that tapers towards the end
  */
 export default class Branch {
 
+    /**
+     * @param {THREE.Vector3} endPos 
+     * @param {float} rad 
+     * @param {float} length 
+     * @param {THREE.Color} color 
+     * @param {string} name 
+     * @param {boolean} last 
+     */
     constructor(endPos, rad, length, color, name, last = false) {
-        this.pos = new THREE.Vector3()
-        this.length = length
-        this.endPos = new THREE.Vector3(this.pos.x, this.pos.y + this.length, this.pos.z)
 
+        this.length = length
+        this.endPos = new THREE.Vector3(0, this.length, 0)
         this.endRad = rad * 0.80
         this.meshGroup = new THREE.Group()
         this.meshGroup.name = name
@@ -19,7 +26,6 @@ export default class Branch {
             this.endRad = rad * 0.2
         }
 
-
         const cylinder = new THREE.CylinderBufferGeometry(Math.max(this.endRad, 0.1), rad, length, 8, 1)
         const branch = new THREE.Mesh(
             cylinder,
@@ -27,6 +33,8 @@ export default class Branch {
         )
         branch.position.y += length / 2
         branch.name = "branchMesh"
+
+        // Add the branch to the group and copy the end position
         this.meshGroup.add(branch)
         this.meshGroup.position.copy(endPos)
 
