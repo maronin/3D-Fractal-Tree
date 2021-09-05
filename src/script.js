@@ -161,20 +161,22 @@ const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prev
             parent.add(stem.meshGroup)
 
             // Cursively call itself and make more branches!
-            branchOff(++depth, branch.meshGroup, branch.endPos, branch.endRad, numBranches, branchLength, treeProps)
+            branchOff(++depth, branch.meshGroup, branch.endPos, branch.endRad, numBranches, branchLength, treeProps, isTree)
             depth--
 
         }
 
     } else {
-        /* Adding leafs?!
-        const leaf = new THREE.Mesh(
-            sphereForBranch,
-            standardMaterial
-        )
-        leaf.position.copy(prevBranchEndPos)
-        parent.add(leaf)
-        */
+        if (isTree && treeProps.leafs) {
+            const leaf = new THREE.Mesh(
+                new THREE.ConeBufferGeometry(depth, depth * 2, 2),
+                material
+            )
+            leaf.rotation.z = Math.PI
+            leaf.position.copy(prevBranchEndPos)
+            leaf.position.y += (depth)
+            parent.add(leaf)
+        }
     }
 }
 
@@ -233,9 +235,10 @@ treeAngleFolder.add(treeProps, "enableRandomAxisRotation").onFinishChange(genera
 
 // Tree growth properties
 const treeGrowthFolder = guiTreePropertiesFolder.addFolder("Tree Growth Values")
-treeGrowthFolder.add(treeProps, "depth").min(0).max(3).step(1).onFinishChange(generateTree)
+treeGrowthFolder.add(treeProps, "depth").min(0).max(4).step(1).onFinishChange(generateTree)
 treeGrowthFolder.add(treeProps, "branches").min(0).max(9).step(1).onFinishChange(generateTree)
 treeGrowthFolder.add(treeProps, "roots").onFinishChange(generateRoots)
+treeGrowthFolder.add(treeProps, "leafs").onFinishChange(generateTree)
 treeGrowthFolder.open()
 
 guiTreePropertiesFolder.add(treeProps, "animate").onFinishChange(generateTree)
