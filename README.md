@@ -1,6 +1,6 @@
-# 3D-Fractal-Pine-Tree
+# 3D-Fractal-Tree
 
-A 3D fractal pine tree!
+A 3D fractal "like" pine tree!
 
 # Requriments: 
 
