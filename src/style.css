@@ -1,19 +1,31 @@
-*
-{
+* {
     margin: 0;
     padding: 0;
 }
 
 html,
-body
-{
+body {
     overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
 }
 
-.webgl
-{
+.webgl {
     position: fixed;
     top: 0;
     left: 0;
     outline: none;
+}
+
+.instructions {
+    color: white;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 2;
+    position: relative;
+    margin-top: 30px;
+}
+
+.dg {
+    z-index: 3 !important;
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
 /**
- * Branch class using a cylinder that tapers towards the end
+ * Branch class using a cylinder that tapers towards the end.
  */
 export default class Branch {
 
@@ -31,6 +31,8 @@ export default class Branch {
             cylinder,
             standardMaterial
         )
+
+        // Need to offset because cylinder is drawn from its center
         branch.position.y += length / 2
         branch.name = "branchMesh"
 

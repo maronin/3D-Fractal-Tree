@@ -5,56 +5,14 @@ import * as dat from 'dat.gui'
 import Branch from './branch'
 import treeProps from './treeProps'
 
+/****************************************************************
+ * Boilerplate ThreeJS stuff
+ ****************************************************************/
 
-// Debug
-const gui = new dat.GUI()
-gui.width = 350
-
-
-// Canvas
+/**
+ * Canvas
+ */
 const canvas = document.querySelector('canvas.webgl')
-
-
-// Scene
-const scene = new THREE.Scene()
-scene.background = new THREE.Color('black');
-const guiLightsFolder = gui.addFolder("Lights")
-
-
-/**
- * Lights
- */
-// Ambient light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-guiLightsFolder.add(ambientLight, 'intensity').min(0).max(1).step(0.001)
-scene.add(ambientLight)
-
-
-// Directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
-directionalLight.position.set(2, 2, -1)
-guiLightsFolder.add(directionalLight, 'intensity').min(0).max(1).step(0.001)
-guiLightsFolder.add(directionalLight.position, 'x').min(-5).max(5).step(0.001)
-guiLightsFolder.add(directionalLight.position, 'y').min(-5).max(5).step(0.001)
-guiLightsFolder.add(directionalLight.position, 'z').min(-5).max(5).step(0.001)
-scene.add(directionalLight)
-
-
-/**
- * Materials
- */
-const material = new THREE.MeshStandardMaterial({ color: new THREE.Color("rgb(4, 36, 0)") })
-
-
-/**
- * Plane
- */
-const plane = new THREE.Mesh(
-    new THREE.PlaneBufferGeometry(100, 100),
-    material
-)
-plane.rotation.x = -Math.PI * 0.5
-scene.add(plane)
 
 
 /**
@@ -64,6 +22,52 @@ const sizes = {
     width: window.innerWidth,
     height: window.innerHeight
 }
+
+
+/**
+ * Lights
+ */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
+directionalLight.position.set(2, 2, -1)
+
+
+/**
+ * Camera
+ */
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000)
+camera.position.x = 0
+camera.position.y = 150
+camera.position.z = 250
+
+
+/**
+ * Scene
+ */
+const scene = new THREE.Scene()
+scene.background = new THREE.Color('black');
+scene.add(camera)
+scene.add(ambientLight)
+scene.add(directionalLight)
+
+
+/**
+ * Controls - Using Orbit Controls
+ */
+const controls = new OrbitControls(camera, canvas)
+controls.target.copy(new THREE.Vector3(0, camera.position.y, 20));
+controls.update()
+controls.enableDamping = true
+
+
+/**
+ * Renderer
+ */
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas
+})
+renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 
 /**
@@ -85,13 +89,70 @@ window.addEventListener('resize', () => {
 
 
 /****************************************************************
- * Tree
+ * Dat GUI
  ****************************************************************/
+
+const gui = new dat.GUI()
+gui.width = 350
+
+/**
+ * Lights UI
+ */
+const guiLightsFolder = gui.addFolder("Lights")
+guiLightsFolder.add(ambientLight, 'intensity').min(0).max(1).step(0.001)
+guiLightsFolder.add(directionalLight, 'intensity').min(0).max(1).step(0.001)
+guiLightsFolder.add(directionalLight.position, 'x').min(-5).max(5).step(0.001)
+guiLightsFolder.add(directionalLight.position, 'y').min(-5).max(5).step(0.001)
+guiLightsFolder.add(directionalLight.position, 'z').min(-5).max(5).step(0.001)
+
+
+/**
+ * Tree Properties UI
+ */
+const guiTreePropertiesFolder = gui.addFolder("Tree Properties")
+guiTreePropertiesFolder.open()
+guiTreePropertiesFolder.add(treeProps, "branchLength").min(0).max(200).step(.1).onFinishChange(generateTree).name("Branch Length")
+guiTreePropertiesFolder.add(treeProps, "branchStartingThickness").min(1).max(30).step(.5).onFinishChange(generateTree).name("Branch Starting Thickness")
+guiTreePropertiesFolder.add(treeProps, "stemToStemRatio").min(0.75).max(0.95).step(0.01).onFinishChange(generateTree).name("Stem to stem ratio")
+guiTreePropertiesFolder.add(treeProps, "stemToBranchRatio").min(0.75).max(0.95).step(0.01).onFinishChange(generateTree).name("Stem to branch ratio")
+guiTreePropertiesFolder.addColor(treeProps, "branchColor").onFinishChange(function() {
+    treeProps.branchColor = new THREE.Color(treeProps.branchColor.r / 255, treeProps.branchColor.g / 255, treeProps.branchColor.b / 255)
+    generateTree()
+}).name("Branch Color")
+
+
+// Tree angle properties
+const treeAngleFolder = guiTreePropertiesFolder.addFolder("Angle Properties")
+treeAngleFolder.open()
+treeAngleFolder.add(treeProps, "angle").min(0).max(180).step(0.5).onFinishChange(generateTree).name("Branch Angle")
+treeAngleFolder.add(treeProps, "axisRotation").min(0).max(360).step(0.5).onFinishChange(generateTree).name("Axis Rotation")
+treeAngleFolder.add(treeProps, "enableRandomAxisRotation").onFinishChange(generateTree).name("Random Axis Rotation")
+
+
+// Tree growth properties
+const treeGrowthFolder = guiTreePropertiesFolder.addFolder("Tree Growth Values")
+treeGrowthFolder.add(treeProps, "depth").min(0).max(4).step(1).onFinishChange(generateTree).name("Depth")
+treeGrowthFolder.add(treeProps, "branches").min(0).max(9).step(1).onFinishChange(generateTree).name("Branches")
+treeGrowthFolder.add(treeProps, "roots").onFinishChange(generateRoots).name("Roots")
+treeGrowthFolder.add(treeProps, "leafs").onFinishChange(generateTree).name("Leafs")
+treeGrowthFolder.open()
+
+guiTreePropertiesFolder.add(treeProps, "animate")
+
+if (window.innerWidth < 700) {
+    gui.close()
+}
+
+/****************************************************************
+ * Tree functions
+ ****************************************************************/
+
+const leafMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color("rgb(4, 36, 0)") })
 
 /**
  * Clear the tree and dispose of the children
  */
-const resetTree = (tree) => {
+function resetTree(tree) {
     tree.children.forEach(child => {
         if (child.type === "Group") {
             resetTree(child)
@@ -101,12 +162,6 @@ const resetTree = (tree) => {
         }
     })
 }
-
-
-/**
- * Green color for the branches
- */
-const greenColor = new THREE.Color(0, 0.5, 0)
 
 
 /**
@@ -120,7 +175,7 @@ const greenColor = new THREE.Color(0, 0.5, 0)
  * @param {Object} treeProps The properties to be used for the tree
  * @param {boolean} isTree Is this a tree? (Otherwise its roots, and don't draw the starting stem)
  */
-const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prevBranchLength, treeProps, isTree = true) => {
+function branchTree(depth, parent, prevBranchEndPos, endRadius, numBranches, prevBranchLength, treeProps, isTree = true) {
 
     if (depth <= treeProps.depth) {
 
@@ -161,16 +216,18 @@ const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prev
             parent.add(stem.meshGroup)
 
             // Cursively call itself and make more branches!
-            branchOff(++depth, branch.meshGroup, branch.endPos, branch.endRad, numBranches, branchLength, treeProps, isTree)
+            branchTree(++depth, branch.meshGroup, branch.endPos, branch.endRad, numBranches, branchLength, treeProps, isTree)
             depth--
 
         }
 
     } else {
+        // Make a leaf if enabled
         if (isTree && treeProps.leafs) {
             const leaf = new THREE.Mesh(
+                // You can mess around with the size of the leaf here
                 new THREE.ConeBufferGeometry(depth, depth * 2, 2),
-                material
+                leafMaterial
             )
             leaf.rotation.z = Math.PI
             leaf.position.copy(prevBranchEndPos)
@@ -182,20 +239,12 @@ const branchOff = (depth, parent, prevBranchEndPos, endRadius, numBranches, prev
 
 
 /**
- * Generate the tree
+ * Generate roots! Passing in custom parameters to the branchTree function
  */
-const generateTree = () => {
-    resetTree(tree)
-    branchOff(0, tree, new THREE.Vector3(), treeProps.branchStartingThickness, treeProps.branches, treeProps.branchLength, treeProps)
-}
-
-/**
- * Generate roots!
- */
-const generateRoots = () => {
+function generateRoots() {
     resetTree(roots)
     if (treeProps.roots) {
-        branchOff(0, roots, new THREE.Vector3(), treeProps.branchStartingThickness, 4, treeProps.branchLength, {
+        branchTree(0, roots, new THREE.Vector3(), treeProps.branchStartingThickness, 4, treeProps.branchLength, {
             branchLength: 10,
             branchStartingThickness: 10,
             stemToStemRatio: 0.6,
@@ -213,72 +262,23 @@ const generateRoots = () => {
 
 
 /**
- * Tree Properties UI
+ * Generate the tree. First reset it to avoid performance issues!
  */
-const guiTreePropertiesFolder = gui.addFolder("Tree Properties")
-guiTreePropertiesFolder.open()
-guiTreePropertiesFolder.add(treeProps, "branchLength").min(0).max(200).step(.1).onFinishChange(generateTree).name("Branch Length")
-guiTreePropertiesFolder.add(treeProps, "branchStartingThickness").min(1).max(30).step(.5).onFinishChange(generateTree).name("Branch Starting Thickness")
-guiTreePropertiesFolder.add(treeProps, "stemToStemRatio").min(0.1).max(0.95).step(0.01).onFinishChange(generateTree).name("Stem to stem ratio")
-guiTreePropertiesFolder.add(treeProps, "stemToBranchRatio").min(0.4).max(0.95).step(0.01).onFinishChange(generateTree).name("Stem to branch ratio")
-guiTreePropertiesFolder.addColor(treeProps, "branchColor").onFinishChange(function() {
-    treeProps.branchColor = new THREE.Color(treeProps.branchColor.r / 255, treeProps.branchColor.g / 255, treeProps.branchColor.b / 255)
-    generateTree()
-}).name("Branch Color")
+function generateTree() {
+    resetTree(tree)
+    branchTree(0, tree, new THREE.Vector3(), treeProps.branchStartingThickness, treeProps.branches, treeProps.branchLength, treeProps)
+}
 
-// Tree angle properties
-const treeAngleFolder = guiTreePropertiesFolder.addFolder("Angle Properties")
-treeAngleFolder.open()
-treeAngleFolder.add(treeProps, "angle").min(0).max(180).step(0.5).onFinishChange(generateTree).name("Branch Angle")
-treeAngleFolder.add(treeProps, "axisRotation").min(0).max(360).step(0.5).onFinishChange(generateTree).name("Axis Rotation")
-treeAngleFolder.add(treeProps, "enableRandomAxisRotation").onFinishChange(generateTree).name("Random Axis Rotation")
 
-// Tree growth properties
-const treeGrowthFolder = guiTreePropertiesFolder.addFolder("Tree Growth Values")
-treeGrowthFolder.add(treeProps, "depth").min(0).max(4).step(1).onFinishChange(generateTree)
-treeGrowthFolder.add(treeProps, "branches").min(0).max(9).step(1).onFinishChange(generateTree)
-treeGrowthFolder.add(treeProps, "roots").onFinishChange(generateRoots)
-treeGrowthFolder.add(treeProps, "leafs").onFinishChange(generateTree)
-treeGrowthFolder.open()
-
-guiTreePropertiesFolder.add(treeProps, "animate").onFinishChange(generateTree)
-
+/****************************************************************
+ * Adding Branches with double clicks!
+ ****************************************************************/
 
 /**
- * Camera
+ * Get the clicked branch
+ * @returns the mesh geometry, group, and point for the clicked branch
  */
-// Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 10000)
-camera.position.x = 0
-camera.position.y = 150
-camera.position.z = 250
-scene.add(camera)
-
-
-/**
- * Controls - Using Orbit Controls
- */
-const controls = new OrbitControls(camera, canvas)
-controls.target.copy(new THREE.Vector3(0, camera.position.y, 20));
-controls.update()
-controls.enableDamping = true
-
-
-/**
- * Renderer
- */
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-})
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-
-/**
- * Get the clicked point
- * @returns the point where the mesh was clicked
- */
-function getClickedPoint(event) {
+function getClickedBranch(event) {
     event.preventDefault();
     const raycaster = new THREE.Raycaster();
     const mousePosition = new THREE.Vector2();
@@ -291,43 +291,56 @@ function getClickedPoint(event) {
     var intersects = raycaster.intersectObjects(tree.children, true);
 
     if (intersects.length > 0) {
-        return intersects[0].point
+        console.log(intersects[0]);
+        return {
+            geometry: intersects[0].object.geometry,
+            group: intersects[0].object.parent,
+            point: intersects[0].point
+        }
     }
 }
 
 
 /**
- * Add a branch on click. Uses ray casting
+ * Add a branch on click. This gets the clicked branch and adds a new branch to the 
+ * group the clicked branch belongs to. 
  */
 function addBranchOnClick(event) {
-    const point = getClickedPoint(event)
-    if (point) {
-        const branch = new Branch(point, 5, treeProps.branchLength, greenColor, "branch", true)
+    const clickedBranch = getClickedBranch(event)
+
+    if (clickedBranch) {
+        const point = clickedBranch.point
+        const branchLength = clickedBranch.geometry.parameters.height
+        const radiusBottom = clickedBranch.geometry.parameters.radiusBottom
+
+        // Need to convert the point that was clicked to the local coordinates of the group of the clicked branch
+        const branch = new Branch(clickedBranch.group.worldToLocal(point), radiusBottom * 0.8, branchLength, treeProps.branchColor, "newBranch", true)
         const quaternion = new THREE.Quaternion()
 
-        quaternion.setFromUnitVectors(point, camera.position)
+        // This will make the branch face towards the camera, although I there is some issues with nested groups...
+        quaternion.setFromUnitVectors(clickedBranch.group.worldToLocal(point), camera.position)
         branch.meshGroup.applyQuaternion(quaternion)
 
-        tree.add(branch.meshGroup)
+        clickedBranch.group.add(branch.meshGroup)
 
     }
 }
 
 
 /**
- * On click event.
+ * Event listener for double clicking
  */
-function onclick(event) {
-    addBranchOnClick(event)
-}
+renderer.domElement.addEventListener("dblclick", addBranchOnClick, true);
 
-renderer.domElement.addEventListener("dblclick", onclick, true);
+
+/****************************************************************
+ * Animation
+ ****************************************************************/
 
 /**
- * 
  * @param {THREE.Group} tree The tree that will be animated
  */
-const animateTree = (tree) => {
+function animateTree(tree) {
     tree.children.forEach(child => {
         if (child.type === "Group") {
             animateTree(child)
@@ -342,7 +355,7 @@ const animateTree = (tree) => {
 /**
  * Animation
  */
-const animate = () => {
+function animate() {
 
     // Update controls
     controls.update()
@@ -359,14 +372,29 @@ const animate = () => {
 
 }
 
+
+/****************************************************************
+ * Add the plane, tree, and roots
+ ****************************************************************/
+
+/**
+ * Plane
+ */
+const plane = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color("rgb(4, 36, 0)") })
+)
+plane.rotation.x = -Math.PI * 0.5
+scene.add(plane)
+
 const tree = new THREE.Object3D()
 const roots = new THREE.Object3D()
-roots.name = "roots"
-tree.name = "tree"
 scene.add(roots)
 scene.add(tree)
 
 generateRoots()
 roots.rotation.z = 180 * Math.PI / 180
+
 generateTree()
+
 animate()
