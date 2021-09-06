@@ -11,5 +11,5 @@ A 3D fractal "like" pine tree!
    
    
 # Extra:
-1. Being able to add a branch using your mouse
-2. Have the branches rotate along the parent, perserving their angle
+1. ✔ Being able to add a branch using your mouse
+2. ✔ Have the branches rotate along the parent, perserving their angle
